@@ -28,9 +28,14 @@ SCHEME_FILES = {
     '../../../../../schemes/check/check_test.f90' : [ 'test' ],
     }
 
+# Default build dir, relative to current working directory,
+# if not specified as command-line argument
+DEFAULT_BUILD_DIR = '.'
+
 # Auto-generated makefile/cmakefile snippets that contain all schemes
 SCHEMES_MAKEFILE = '/dev/null'
 SCHEMES_CMAKEFILE = '/dev/null'
+SCHEMES_SOURCEFILE = '/dev/null'
 
 # CCPP host cap in which to insert the ccpp_field_add statements;
 # determines the directory to place ccpp_{modules,fields}.inc
@@ -41,6 +46,7 @@ TARGET_FILES = [
 # Auto-generated makefile/cmakefile snippets that contain all caps
 CAPS_MAKEFILE = '/dev/null'
 CAPS_CMAKEFILE = '/dev/null'
+CAPS_SOURCEFILE = '/dev/null'
 
 # Directory where to put all auto-generated physics caps
 CAPS_DIR = '.'
@@ -69,6 +75,7 @@ FIELDS_INCLUDE_FILE = 'ccpp_fields_{set}.inc'
 
 # Directory where to write static API to
 STATIC_API_DIR = '.'
+STATIC_API_SRCFILE = './CCPP_STATIC_API.sh'
 
 # HTML document containing the model-defined CCPP variables
 HTML_VARTABLE_FILE = 'CCPP_VARIABLES_FV3.html'
@@ -81,9 +88,5 @@ LATEX_VARTABLE_FILE = 'CCPP_VARIABLES_FV3.tex'
 # Template code to generate include files                                     #
 ###############################################################################
 
-# Name of the CCPP data structure in the host model cap;
-# in the case of FV3, this is a 2-dimensional array with
-# the number of blocks as the first and the number of
-# OpenMP threads as the second dimension; nb is the loop
-# index for the current block, nt for the current thread
+# Name of the CCPP data structure in the host model cap
 CCPP_DATA_STRUCTURE = 'cdata'

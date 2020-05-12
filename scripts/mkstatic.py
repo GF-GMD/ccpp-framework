@@ -183,7 +183,7 @@ module {module}
 {suite_switch}
       else
 
-         write({ccpp_var_name}%errmsg,'(*(a))'), 'Invalid suite ' // trim(suite_name)
+         write({ccpp_var_name}%errmsg,'(*(a))') 'Invalid suite ' // trim(suite_name)
          ierr = 1
 
       end if
@@ -202,6 +202,7 @@ end module {module}
         self._module      = CCPP_STATIC_API_MODULE
         self._subroutines = None
         self._suites      = []
+        self._directory   = '.'
         for key, value in kwargs.items():
             setattr(self, "_"+key, value)
 
@@ -213,6 +214,15 @@ end module {module}
     @filename.setter
     def filename(self, value):
         self._filename = value
+
+    @property
+    def directory(self):
+        '''Get the directory to write API to.'''
+        return self._directory
+
+    @directory.setter
+    def directory(self, value):
+        self._directory = value
 
     @property
     def module(self):
@@ -293,7 +303,7 @@ end module {module}
                                                                                    arguments=argument_list_group)
                 group_calls += '''
             else
-               write({ccpp_var_name}%errmsg, '(*(a))') "Group " // trim(group_name) // " not found"
+               write({ccpp_var_name}%errmsg, '(*(a))') 'Group ' // trim(group_name) // ' not found'
                ierr = 1
             end if
 '''.format(ccpp_var_name=ccpp_var.local_name, group_name=group.name)
@@ -328,8 +338,11 @@ end module {module}
                                    suite_switch=suite_switch)
 
         # Write output to stdout or file
-        if (self._filename is not sys.stdout):
-            f = open(self._filename, 'w')
+        if (self.filename is not sys.stdout):
+            filepath = os.path.split(self.filename)[0]
+            if filepath and not os.path.isdir(filepath):
+                os.makedirs(filepath)
+            f = open(self.filename, 'w')
         else:
             f = sys.stdout
         f.write(API.header.format(module=self._module,
@@ -341,6 +354,22 @@ end module {module}
             f.close()
         return
 
+    def write_sourcefile(self, source_filename):
+        success = True
+        filepath = os.path.split(source_filename)[0]
+        if filepath and not os.path.isdir(filepath):
+            os.makedirs(filepath)
+        f = open(source_filename, 'w')
+        contents = """# The CCPP static API is defined here.
+#
+# This file is auto-generated using ccpp_prebuild.py
+# at compile time, do not edit manually.
+#
+export CCPP_STATIC_API=\"{filename}\"
+""".format(filename=os.path.abspath(os.path.join(self.directory,self.filename)))
+        f.write(contents)
+        f.close()
+        return success
 
 class Suite(object):
 
@@ -434,6 +463,12 @@ end module {module}
         tree = ET.parse(self._sdf_name)
         suite_xml = tree.getroot()
         self._name = suite_xml.get('name')
+        # Validate name of suite in XML tag against filename; could be moved to common.py
+        if not (os.path.basename(self._sdf_name) == 'suite_{}.xml'.format(self._name)):
+            logging.critical("Invalid suite name {0} in suite definition file {1}.".format(
+                                                               self._name, self._sdf_name))
+            success = False
+            return success
 
         # Flattened lists of all schemes and subroutines in SDF
         self._all_schemes_called = []
@@ -909,7 +944,7 @@ end module {module}
 {actions_after}
 '''.format(subroutine_name=subroutine_name, args=args, actions_before=actions_before.rstrip('\n'), actions_after=actions_after.rstrip('\n'))
                     error_check = '''if ({target_name_flag}/=0) then
-        write({target_name_msg},'(a)') "An error occured in {subroutine_name}"
+        {target_name_msg} = "An error occured in {subroutine_name}: " // trim({target_name_msg})
         ierr={target_name_flag}
         return
       end if
